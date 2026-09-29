@@ -1,0 +1,96 @@
+.resultCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1.1rem;
+}
+
+.resultItemHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.resultItemIcon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+}
+
+.resultItemTitle {
+  font-weight: 500;
+}
+
+.resultKind {
+  margin-left: auto;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.resultItemContent {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--muted-foreground);
+}
+
+.metaRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.typeBadge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.repoBadge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.authorBadge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.tagsRow {
+  display: flex;
+  gap: 4px;
+}
+
+.tagBadge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.moreTags {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}

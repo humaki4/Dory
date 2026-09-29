@@ -1,0 +1,6 @@
+.field { display: grid; gap: 6px; }
+.label { color: var(--text-secondary); font-size: 12px; font-weight: 620; }
+.control { width: 100%; min-height: 36px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-primary); color: var(--text-primary); }
+.control:hover:not(:disabled) { border-color: var(--text-muted); }
+.control:focus-visible { border-color: var(--focus-ring); outline: 2px solid color-mix(in oklch, var(--focus-ring) 35%, transparent); }
+.control:disabled { cursor: not-allowed; opacity: 0.5; }

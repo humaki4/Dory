@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  # MongoDB for general data
+  mongodb:
+    image: mongo:7
+    container_name: dory-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - dory-network
+
+  # Backend Server
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: dory-server
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      MONGODB_URI: mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongodb:27017/${MONGODB_DATABASE}?authSource=admin
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITLAB_TOKEN: ${GITLAB_TOKEN}
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodb
+    networks:
+      - dory-network
+
+  # Frontend Client
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: dory-client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - dory-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  dory-network:
+    driver: bridge

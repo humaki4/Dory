@@ -1,0 +1,31 @@
+.page {
+  min-height: calc(100dvh - var(--app-header-height));
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.card {
+  width: min(100%, 430px);
+  padding: 28px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-md);
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.description,
+.status {
+  color: var(--text-muted);
+}
+
+.description { margin: 0 0 22px; }
+.status { margin: 0 0 10px; font-size: 12px; }
+.login { width: 100%; }

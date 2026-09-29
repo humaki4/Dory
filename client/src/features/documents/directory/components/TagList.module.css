@@ -1,0 +1,23 @@
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.tag {
+  font-size: 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.typeTag {
+  background: var(--accent-muted);
+  border-color: var(--accent-muted);
+  color: var(--accent-text);
+}

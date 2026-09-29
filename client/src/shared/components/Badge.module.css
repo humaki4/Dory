@@ -1,0 +1,5 @@
+.badge { display: inline-flex; align-items: center; gap: 4px; min-height: 22px; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--surface-hover); color: var(--text-secondary); font-size: 11px; font-weight: 620; line-height: 1; }
+.accent { background: var(--accent-muted); color: var(--accent-text); }
+.info { background: var(--info-muted); color: var(--info-text); }
+.success { background: var(--success-muted); color: var(--success-text); }
+.warning { background: var(--warning-muted); color: var(--warning-text); }

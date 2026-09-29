@@ -1,0 +1,51 @@
+@import "./shared/styles/tokens.css";
+
+:root {
+  --app-header-height: 48px;
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--surface-app);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  outline-color: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-muted);
+  color: var(--text-primary);
+}

@@ -1,0 +1,48 @@
+.resultsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow: hidden;
+}
+
+.resultsList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 42vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.resultsHint,
+.resultsEmpty {
+  text-align: center;
+  color: var(--muted-foreground);
+  padding: 1.5rem 0;
+}
+
+.loadingContainer {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--muted-foreground);
+}
+
+.resultItem {
+  padding: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+}
+
+.resultItem[data-hovered] {
+  background: var(--surface-hover);
+}
+
+.resultItem[data-selected] {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}

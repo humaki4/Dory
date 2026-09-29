@@ -1,0 +1,74 @@
+.filtersSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filtersHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filtersTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.filtersClear {
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.filtersClear[data-hovered] {
+  color: var(--foreground);
+}
+
+.filtersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filterLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+}
+
+.filterTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.filterTag {
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.filterTag[data-selected] {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.filterEmpty {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}

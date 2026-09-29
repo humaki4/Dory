@@ -1,0 +1,15 @@
+.directoryContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.directoryContent {
+  padding: 24px;
+}
+
+.directoryTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}

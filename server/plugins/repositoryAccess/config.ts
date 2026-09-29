@@ -1,0 +1,1 @@
+export const REPO_CACHE_TTL_MS = Number(process.env.AUTHZ_REPO_CACHE_TTL_MS || 2 * 60 * 1000);

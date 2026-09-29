@@ -1,0 +1,51 @@
+.metadata-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 12px 0;
+  margin: 0;
+}
+
+.metadata-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 16px;
+}
+
+.metadata-item:last-child {
+  border-bottom: none;
+}
+
+.metadata-label {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.metadata-value {
+  margin: 0;
+}
+
+.metadata-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.metadata-secondary {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.metadata-default {
+  color: var(--foreground);
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.5;
+}

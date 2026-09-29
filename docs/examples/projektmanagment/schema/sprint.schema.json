@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:docatlas:schema:sprint:v1",
+  "type": "object",
+  "title": "Sprint",
+  "x-app": "docAtlas",
+  "x-icon-name": "calendar",
+  "x-plural": "Sprints",
+  "x-schema-version": "1.0",
+  "x-type-key": "sprint",
+  "properties": {
+    "id": {
+      "type": "string",
+      "readOnly": true,
+      "x-key": "id",
+      "x-order": 0
+    },
+    "title": {
+      "type": "string",
+      "x-key": "title",
+      "x-order": 1,
+      "x-featured": true
+    },
+    "type": {
+      "const": "sprint",
+      "type": "string",
+      "readOnly": true,
+      "x-key": "type",
+      "x-order": 2
+    },
+    "status": {
+      "type": "string",
+      "enum": ["planned", "in-progress", "done", "cancelled"],
+      "x-key": "status",
+      "x-format": "status",
+      "x-order": 3,
+      "x-featured": true
+    },
+    "sprint_goal": {
+      "type": "string",
+      "x-key": "sprint_goal",
+      "x-order": 4
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "x-key": "start_date",
+      "x-format": "date",
+      "x-order": 5
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "x-key": "end_date",
+      "x-format": "date",
+      "x-order": 6
+    },
+    "capacity_story_points": {
+      "type": "number",
+      "minimum": 0,
+      "x-key": "capacity_story_points",
+      "x-order": 7
+    },
+    "committed_story_points": {
+      "type": "number",
+      "minimum": 0,
+      "x-key": "committed_story_points",
+      "x-order": 8
+    },
+    "linked": {
+      "type": "object",
+      "x-key": "linked",
+      "x-format": "relation-group",
+      "x-order": 9,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "backlog": { "type": "string", "x-related-type": "backlog" }
+      }
+    },
+    "created": {
+      "type": "string",
+      "format": "date-time",
+      "readOnly": true,
+      "x-key": "created",
+      "x-order": 10
+    },
+    "updated": {
+      "type": "string",
+      "format": "date-time",
+      "readOnly": true,
+      "x-key": "updated",
+      "x-order": 11
+    }
+  },
+  "required": ["id", "title", "type", "status", "start_date", "end_date"]
+}

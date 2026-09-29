@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:docatlas:schema:story:v1",
+  "type": "object",
+  "title": "Story",
+  "x-app": "docAtlas",
+  "x-icon-name": "book-open",
+  "x-plural": "Stories",
+  "x-schema-version": "1.0",
+  "x-type-key": "story",
+  "properties": {
+    "id": {
+      "type": "string",
+      "readOnly": true,
+      "x-key": "id",
+      "x-order": 0
+    },
+    "title": {
+      "type": "string",
+      "x-key": "title",
+      "x-order": 1,
+      "x-featured": true
+    },
+    "type": {
+      "const": "story",
+      "type": "string",
+      "readOnly": true,
+      "x-key": "type",
+      "x-order": 2
+    },
+    "status": {
+      "type": "string",
+      "enum": ["planned", "ready", "in-progress", "blocked", "done", "cancelled"],
+      "x-key": "status",
+      "x-format": "status",
+      "x-order": 3,
+      "x-featured": true
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "x-key": "priority",
+      "x-format": "priority",
+      "x-order": 4
+    },
+    "owner": {
+      "type": "string",
+      "x-key": "owner",
+      "x-format": "user",
+      "x-order": 5
+    },
+    "sprint": {
+      "type": "string",
+      "x-key": "sprint",
+      "x-format": "relation",
+      "x-related-type": "sprint",
+      "x-order": 6
+    },
+    "story_points": {
+      "type": "number",
+      "minimum": 0,
+      "x-key": "story_points",
+      "x-order": 7
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "x-key": "tags",
+      "x-format": "tag",
+      "x-order": 8
+    },
+    "linked": {
+      "type": "object",
+      "x-key": "linked",
+      "x-format": "relation-group",
+      "x-order": 9,
+      "properties": {
+        "feature": { "type": "string", "x-related-type": "feature" },
+        "tasks": {
+          "type": "array",
+          "items": { "type": "string", "x-related-type": "task" }
+        },
+        "blocks": {
+          "type": "array",
+          "items": { "type": "string", "x-related-type": "story" }
+        },
+        "blocked_by": {
+          "type": "array",
+          "items": { "type": "string", "x-related-type": "story" }
+        }
+      }
+    },
+    "created": {
+      "type": "string",
+      "format": "date-time",
+      "readOnly": true,
+      "x-key": "created",
+      "x-order": 10
+    },
+    "updated": {
+      "type": "string",
+      "format": "date-time",
+      "readOnly": true,
+      "x-key": "updated",
+      "x-order": 11
+    }
+  },
+  "required": ["id", "title", "type", "status"]
+}

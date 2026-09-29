@@ -1,0 +1,16 @@
+.section {
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.emptyState {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}

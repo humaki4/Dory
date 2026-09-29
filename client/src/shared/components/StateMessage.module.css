@@ -1,0 +1,13 @@
+.message {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.error {
+  color: var(--danger-text);
+}
