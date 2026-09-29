@@ -28,10 +28,23 @@ Der Kernansatz ist:
 ## Was der Prototyp aktuell zeigt
 
 - Login ueber OAuth, aktuell primaer mit GitHub, optional mit GitLab.
+
+	![Anmeldung mit GitHub](./docs/LoginWithGithubScreen.png)
+
 - Administrationsbereich zum Laden scanbarer Repositories und zum Starten eines Scans.
 - Ingestion von Markdown-Dokumenten inklusive Metadaten nach MongoDB.
+
+	![Repository im Administrationsbereich zum Scannen auswählen](./docs/AdministrationScanRepo.png)
+
 - Dokumentbrowser fuer Repositories und Pfade.
+
+	![Dokumentbrowser mit Repositories und Verzeichnisstruktur](./docs/DocumentBrowserAnsicht.png)
+	![Dokumentansicht mit Metadaten](./docs/DocumentView.png)
+
 - Suche ueber die in MongoDB gespeicherten Dokumente.
+
+	![Suchdialog mit Filtern und Ergebnissen](./docs/SearchPanelWithResults.png)
+
 - Repository-basierte Sichtbarkeit anhand der Berechtigungen des eingeloggten Users.
 
 ## Fazit
