@@ -1,6 +1,6 @@
-# docAtlas
+# Dory
 
-docAtlas ist ein Prototyp fuer eine git-native Dokumentations- und Wissensplattform. Die Idee: Markdown-Dateien bleiben in ihren fachlichen Repositories, docAtlas sammelt sie ein, normalisiert Metadaten aus Frontmatter, speichert sie zentral in MongoDB und macht sie in einer Weboberflaeche durchsuchbar und browsebar.
+Dory ist ein Prototyp fuer eine git-native Dokumentations- und Wissensplattform. Die Idee: Markdown-Dateien bleiben in ihren fachlichen Repositories, Dory sammelt sie ein, normalisiert Metadaten aus Frontmatter, speichert sie zentral in MongoDB und macht sie in einer Weboberflaeche durchsuchbar und browsebar.
 
 > **WICHTIG:** Dies ist nur ein Proof of Concept.
 >
@@ -16,7 +16,7 @@ docAtlas ist ein Prototyp fuer eine git-native Dokumentations- und Wissensplattf
 
 ## Idee
 
-In vielen Teams liegt Dokumentation verteilt ueber mehrere Repositories: ADRs, How-Tos, RFCs, Projektmanagement-Artefakte, Meeting Notes oder Produktkonzepte. docAtlas soll diese verteilten Inhalte nicht ersetzen, sondern erschliessen.
+In vielen Teams liegt Dokumentation verteilt ueber mehrere Repositories: ADRs, How-Tos, RFCs, Projektmanagement-Artefakte, Meeting Notes oder Produktkonzepte. Dory soll diese verteilten Inhalte nicht ersetzen, sondern erschliessen.
 
 Der Kernansatz ist:
 
@@ -29,21 +29,21 @@ Der Kernansatz ist:
 
 - Login ueber OAuth, aktuell primaer mit GitHub, optional mit GitLab.
 
-	![Anmeldung mit GitHub](./docs/LoginWithGithubScreen.png)
+  ![Anmeldung mit GitHub](./docs/LoginWithGithubScreen.png)
 
 - Administrationsbereich zum Laden scanbarer Repositories und zum Starten eines Scans.
 - Ingestion von Markdown-Dokumenten inklusive Metadaten nach MongoDB.
 
-	![Repository im Administrationsbereich zum Scannen auswählen](./docs/AdministrationScanRepo.png)
+  ![Repository im Administrationsbereich zum Scannen auswählen](./docs/AdministrationScanRepo.png)
 
 - Dokumentbrowser fuer Repositories und Pfade.
 
-	![Dokumentbrowser mit Repositories und Verzeichnisstruktur](./docs/DocumentBrowserAnsicht.png)
-	![Dokumentansicht mit Metadaten](./docs/DocumentView.png)
+  ![Dokumentbrowser mit Repositories und Verzeichnisstruktur](./docs/DocumentBrowserAnsicht.png)
+  ![Dokumentansicht mit Metadaten](./docs/DocumentView.png)
 
 - Suche ueber die in MongoDB gespeicherten Dokumente.
 
-	![Suchdialog mit Filtern und Ergebnissen](./docs/SearchPanelWithResults.png)
+  ![Suchdialog mit Filtern und Ergebnissen](./docs/SearchPanelWithResults.png)
 
 - Repository-basierte Sichtbarkeit anhand der Berechtigungen des eingeloggten Users.
 
@@ -178,4 +178,3 @@ Danach ist das Frontend standardmaessig unter `http://localhost:5173` erreichbar
 - [client/README.md](./client/README.md)
 - [server/README.md](./server/README.md)
 - [docs/README.md](./docs/README.md)
-# Tech-Docs
