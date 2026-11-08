@@ -21,6 +21,7 @@ export interface FileContent {
 export interface ListFilesOptions {
   pathPattern?: string;
   branch?: string;
+  maxFiles?: number;
 }
 
 export interface IVcsProvider {

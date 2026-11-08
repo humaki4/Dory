@@ -1,9 +1,11 @@
 import matter from 'gray-matter';
 
+import { BadRequestError } from '../../core/errors';
 import { FastifyInstance } from 'fastify';
 import { Collection } from 'mongodb';
 import { FileContent, RepositoryMetadata } from './vcsProvider/IVcsProvider';
 import { CollectorDocumentProcessedEvent, CollectorRepositorySyncCompletedEvent } from './events';
+import { parseGithubRepositoryInput } from './repositoryInput';
 
 interface ScannableRepository {
   provider: string;
@@ -21,16 +23,36 @@ interface ScannableRepository {
 interface ScanRepositoryOptions {
   branch?: string;
   pathPattern?: string;
+  maxFiles?: number;
 }
 
 type SourceSyncRepositoryRecord = {
   fullName: string;
   space: string;
   name: string;
+  sourceId?: string;
+  provider?: string;
+  url?: string;
   defaultBranch?: string;
+  isPrivate?: boolean;
+  isPublicSource?: boolean;
+  updatedAt?: string;
+  description?: string;
 };
 
 type CollectorServiceContext = Pick<FastifyInstance, 'vcsProvider' | 'eventBus' | 'log' | 'mongo'>;
+
+const DEFAULT_PUBLIC_REPOSITORY_FILE_LIMIT = 5;
+const MAX_PUBLIC_REPOSITORY_FILE_LIMIT = 100;
+
+function getPublicRepositoryFileLimit(): number {
+  const configuredLimit = Number(process.env.COLLECTOR_PUBLIC_REPOSITORY_MAX_FILES);
+  if (!Number.isInteger(configuredLimit) || configuredLimit < 1) {
+    return DEFAULT_PUBLIC_REPOSITORY_FILE_LIMIT;
+  }
+
+  return Math.min(configuredLimit, MAX_PUBLIC_REPOSITORY_FILE_LIMIT);
+}
 
 export class CollectorService {
   private readonly vcsProvider: CollectorServiceContext['vcsProvider'];
@@ -56,8 +78,84 @@ export class CollectorService {
 
   async listScannableRepositories(): Promise<ScannableRepository[]> {
     const repositories = await this.vcsProvider.listRepositories();
+    const mappedRepositories = new Map(
+      repositories.map((repo) => {
+        const mapped = this.mapRepository(repo);
+        return [mapped.fullPath.toLowerCase(), mapped];
+      })
+    );
 
-    return repositories.map((repo) => this.mapRepository(repo));
+    if (this.sourcesCollection) {
+      const publicSources = await this.sourcesCollection.find({ isPublicSource: true }).toArray();
+
+      for (const source of publicSources) {
+        const fullPath = `${source.space}/${source.name}`;
+        mappedRepositories.set(fullPath.toLowerCase(), {
+          provider: source.provider || 'github',
+          id: source.sourceId || fullPath,
+          space: source.space,
+          name: source.name,
+          fullPath,
+          url: source.url || `https://github.com/${fullPath}`,
+          defaultBranch: source.defaultBranch || 'main',
+          isPrivate: false,
+          updatedAt: source.updatedAt || '',
+          description: source.description,
+        });
+      }
+    }
+
+    return [...mappedRepositories.values()];
+  }
+
+  async addPublicRepository(input: string): Promise<{
+    repository: string;
+    maxFiles: number;
+    scanned: number;
+    published: number;
+  }> {
+    if ((process.env.PROVIDER_TYPE || 'github') !== 'github') {
+      throw new BadRequestError('Public repository registration currently supports GitHub only');
+    }
+
+    if (!this.sourcesCollection) {
+      throw new Error('MongoDB source collection is not available');
+    }
+
+    const { space, name } = parseGithubRepositoryInput(input);
+    const metadata = await this.vcsProvider.getRepository(space, name);
+    if (metadata.isPrivate) {
+      throw new BadRequestError('Only public repositories can be registered');
+    }
+
+    const fullName = `${space}/${name}`;
+    await this.sourcesCollection.updateOne(
+      { fullName },
+      {
+        $set: {
+          sourceId: metadata.id,
+          provider: 'github',
+          fullName,
+          space,
+          name,
+          url: metadata.url,
+          defaultBranch: metadata.defaultBranch,
+          isPrivate: false,
+          isPublicSource: true,
+          updatedAt: metadata.updatedAt,
+          description: metadata.description,
+        },
+      },
+      { upsert: true }
+    );
+
+    const maxFiles = getPublicRepositoryFileLimit();
+    const result = await this.scanRepository(space, name, {
+      branch: metadata.defaultBranch,
+      maxFiles,
+    });
+
+    return { repository: fullName, maxFiles, ...result };
   }
 
   async scanRepository(
@@ -65,15 +163,46 @@ export class CollectorService {
     name: string,
     options?: ScanRepositoryOptions
   ): Promise<{ scanned: number; published: number }> {
-    const syncResult = await this.scanAndPublishRepository(space, name, options);
+    let scanOptions = options;
+    let isPublicSource = false;
+    if (this.sourcesCollection && options?.maxFiles === undefined) {
+      const publicSource = await this.sourcesCollection.findOne({
+        fullName: `${space}/${name}`,
+        isPublicSource: true,
+      });
+      if (publicSource) {
+        isPublicSource = true;
+        scanOptions = {
+          ...options,
+          maxFiles: Math.min(
+            options?.maxFiles ?? getPublicRepositoryFileLimit(),
+            MAX_PUBLIC_REPOSITORY_FILE_LIMIT
+          ),
+        };
+      }
+    } else if (options?.maxFiles !== undefined) {
+      isPublicSource = Boolean(
+        await this.sourcesCollection?.findOne({
+          fullName: `${space}/${name}`,
+          isPublicSource: true,
+        })
+      );
+    }
 
-    const fullScan = !options?.pathPattern;
+    const syncResult = await this.scanAndPublishRepository(
+      space,
+      name,
+      scanOptions,
+      isPublicSource
+    );
+
+    const fullScan = !scanOptions?.pathPattern && scanOptions?.maxFiles === undefined;
     const completionEvent: CollectorRepositorySyncCompletedEvent = {
       eventType: 'collector.repository.sync.completed',
       provider: process.env.PROVIDER_TYPE || 'github',
       repository: syncResult.repository,
-      branch: options?.branch,
-      pathPattern: options?.pathPattern,
+      branch: scanOptions?.branch,
+      pathPattern: scanOptions?.pathPattern,
       fullScan,
       paths: syncResult.paths,
       collectedAt: new Date().toISOString(),
@@ -141,7 +270,8 @@ export class CollectorService {
   private async scanAndPublishRepository(
     space: string,
     name: string,
-    options?: ScanRepositoryOptions
+    options?: ScanRepositoryOptions,
+    isPublicSource = false
   ): Promise<{
     repository: CollectorDocumentProcessedEvent['repository'];
     paths: string[];
@@ -150,9 +280,18 @@ export class CollectorService {
   }> {
     this.log.info({ space, name, options }, 'collector: scanning repository');
     const repository = await this.vcsProvider.getRepository(space, name);
+    if (isPublicSource && repository.isPrivate) {
+      await this.sourcesCollection?.updateOne(
+        { fullName: `${space}/${name}` },
+        { $set: { isPrivate: true, isPublicSource: false } }
+      );
+      throw new BadRequestError('Registered repository is no longer public');
+    }
+
     const files = await this.vcsProvider.listMarkdownFiles(space, name, {
       branch: options?.branch,
       pathPattern: options?.pathPattern,
+      maxFiles: options?.maxFiles,
     });
 
     this.log.info(

@@ -10,6 +10,7 @@ import {
 } from './github';
 
 type ResolveGithubAccessToken = (request: FastifyRequest, userSub: string) => string | null;
+type LoadPublicRepositories = () => Promise<Set<string>>;
 
 export type RepositoryAccessService = {
   authorize: <T extends TypedAuthorizationRequest>(
@@ -20,28 +21,48 @@ export type RepositoryAccessService = {
 
 export function createRepositoryAccessService(
   logger: FastifyBaseLogger,
-  resolveGithubAccessToken: ResolveGithubAccessToken
+  resolveGithubAccessToken: ResolveGithubAccessToken,
+  loadPublicRepositories: LoadPublicRepositories = async () => new Set()
 ): RepositoryAccessService {
   const cache = createRepositoryAccessCache();
 
   const getAllowedRepositories = async (request: FastifyRequest): Promise<Set<string>> => {
     const user = request.currentUser;
     if (!user) throw new UnauthorizedError('Authentication required');
-    if (user.provider !== 'github') throw new ForbiddenError('Unsupported authentication provider');
+
+    const publicRepositories = await loadPublicRepositories();
+    const allowed = new Set<string>();
+    for (const repository of publicRepositories) {
+      allowed.add(repository);
+      allowed.add(repository.toLowerCase());
+    }
+
+    if (user.provider !== 'github') return allowed;
 
     const cacheKey = `${user.provider}:${user.sub}`;
     const cached = cache.get(cacheKey);
-    if (cached) return cached.repos;
+    if (cached) {
+      for (const repository of cached.repos) allowed.add(repository);
+      return allowed;
+    }
 
     const accessToken = resolveGithubAccessToken(request, user.sub);
-    if (!accessToken) throw new UnauthorizedError('Authentication session expired');
+    if (!accessToken) return allowed;
 
-    await loadGithubAuthenticatedUser(accessToken, logger, user.sub);
+    try {
+      await loadGithubAuthenticatedUser(accessToken, logger, user.sub);
 
-    const repos = await loadGithubRepositories(accessToken, logger, user.sub);
-    cache.set(cacheKey, { repos, expiresAt: Date.now() + REPO_CACHE_TTL_MS });
+      const repos = await loadGithubRepositories(accessToken, logger, user.sub);
+      cache.set(cacheKey, { repos, expiresAt: Date.now() + REPO_CACHE_TTL_MS });
+      for (const repository of repos) allowed.add(repository);
+    } catch (error) {
+      logger.warn(
+        { userId: user.sub, error },
+        'authz: falling back to registered public repositories'
+      );
+    }
 
-    return repos;
+    return allowed;
   };
 
   const assertRepositoryReadAccess = async (

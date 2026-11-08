@@ -13,6 +13,10 @@ export default function (fastify: FastifyInstance) {
     name: z.string().min(1),
   });
 
+  const publicRepositoryBodySchema = z.object({
+    repository: z.string().min(1),
+  });
+
   const scanQuerySchema = z.object({
     branch: z.string().min(1).optional(),
     pathPattern: z.string().min(1).optional(),
@@ -31,6 +35,28 @@ export default function (fastify: FastifyInstance) {
       repositories,
     };
   });
+
+  app.post(
+    '/repositories/public',
+    {
+      schema: {
+        body: publicRepositoryBodySchema,
+      },
+    },
+    async (request) => {
+      await fastify.authorize(request, {
+        action: 'administration:write',
+        resource: { type: 'administration' },
+      });
+
+      const result = await collectorService.addPublicRepository(request.body.repository);
+
+      return {
+        provider: 'github',
+        ...result,
+      };
+    }
+  );
 
   app.post(
     '/repositories/:space/:name/scan',

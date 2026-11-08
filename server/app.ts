@@ -68,11 +68,13 @@ async function buildApp(opts: { logLevel?: string } = {}) {
   // Auto-load custom plugins from plugins directory
   app.register(autoload, {
     dir: path.join(__dirname, 'plugins'),
+    ignorePattern: /\.test\.ts$/,
   });
 
   // Auto-load routes from modules directory
   app.register(autoload, {
     dir: path.join(__dirname, 'modules'),
+    ignorePattern: /\.test\.ts$/,
     forceESM: false,
     options: { prefix: '/api' },
   });

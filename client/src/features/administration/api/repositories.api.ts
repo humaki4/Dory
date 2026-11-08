@@ -1,6 +1,14 @@
 import { ApiError, requestJson } from "@/api/httpClient";
 import type { ScannableRepositoriesResponse } from "../model/repository.types";
 
+export interface AddPublicRepositoryResponse {
+  provider: string;
+  repository: string;
+  maxFiles: number;
+  scanned: number;
+  published: number;
+}
+
 function administrationError(error: unknown, fallback: string): Error {
   if (error instanceof ApiError && error.status === 401) {
     return new Error("Authentication required");
@@ -29,5 +37,22 @@ export async function scanRepository(repositoryId: string): Promise<void> {
     );
   } catch (error) {
     throw administrationError(error, "Failed to scan repository");
+  }
+}
+
+export async function addPublicRepository(
+  repository: string,
+): Promise<AddPublicRepositoryResponse> {
+  try {
+    return await requestJson<AddPublicRepositoryResponse>(
+      "/api/collector/repositories/public",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repository }),
+      },
+    );
+  } catch (error) {
+    throw administrationError(error, "Failed to add public repository");
   }
 }

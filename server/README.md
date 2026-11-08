@@ -44,7 +44,10 @@ Das Backend von docAtlas ist eine Fastify-Anwendung fuer Authentifizierung, Repo
 ### Administration und Collector
 
 - `GET /api/collector/repositories`
+- `POST /api/collector/repositories/public` (Admin: `{ "repository": "owner/repo" }` oder GitHub-URL)
 - `POST /api/collector/repositories/:space/:name/scan`
+
+Public GitHub-Repositories, die über den Admin-Endpunkt hinzugefügt wurden, werden dauerhaft registriert und nach dem Scan allen angemeldeten Nutzern in Dokumenten und Suche freigegeben. Pro Quelle werden standardmäßig fünf Markdown-Dateien in alphabetischer Pfadreihenfolge geladen, mit maximal fünf parallelen Dateiabrufen. `COLLECTOR_PUBLIC_REPOSITORY_MAX_FILES` kann den Umfang erhöhen oder reduzieren; Werte über 100 werden auf 100 begrenzt. Begrenzte Scans sind partiell und löschen keine zuvor importierten Dokumente. Private Repositories bleiben durch die GitHub-Berechtigungen des jeweiligen Nutzers geschützt. Der Collector benötigt dafür ein gültiges `GITHUB_TOKEN`.
 
 ### Dokumente
 
@@ -118,6 +121,7 @@ Spaeter geladene Dateien ueberschreiben fruehere Werte.
 
 - `PROVIDER_TYPE`: Default `github`, steuert den aktiven VCS-Provider
 - `GITHUB_TOKEN`: Zugriffstoken fuer den GitHub-Collector
+- `COLLECTOR_PUBLIC_REPOSITORY_MAX_FILES`: maximale Markdown-Dateien pro registriertem öffentlichem GitHub-Repository, Default `5`, absolute Obergrenze `100`
 - `GITLAB_TOKEN`: Zugriffstoken fuer den GitLab-Collector
 - `GITLAB_BASE_URL`: Basis-URL fuer GitLab-Repositories
 - `COLLECTOR_STARTUP_SYNC_ENABLED`: bei `false` wird der Startup-Sync deaktiviert

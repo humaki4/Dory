@@ -59,10 +59,12 @@ class DocumentsBrowseService {
 
   async getContent(space: string, name: string, path: string) {
     const repoFullName = `${space}/${name}`;
+    const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const repoFullNameRegex = new RegExp(`^${escapeRegExp(repoFullName)}$`, 'i');
     const normalizedPath = path.replace(/\/+$/, '');
 
     const fileDoc = await this.documentsCollection.findOne({
-      repoFullName,
+      repoFullName: repoFullNameRegex,
       path: normalizedPath || path,
     });
 
@@ -70,12 +72,11 @@ class DocumentsBrowseService {
       return fileDoc;
     }
 
-    const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const prefix = normalizedPath ? `${normalizedPath}/` : '';
     const prefixRegex = new RegExp(`^${escapeRegExp(prefix)}`);
 
     const candidates = await this.documentsCollection
-      .find({ repoFullName, path: prefixRegex })
+      .find({ repoFullName: repoFullNameRegex, path: prefixRegex })
       .toArray();
 
     if (!candidates.length) {

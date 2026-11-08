@@ -1,4 +1,4 @@
-import fastify, { FastifyPluginCallback } from 'fastify';
+import fastify, { FastifyInstance, FastifyPluginCallback } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -83,12 +83,39 @@ async function buildCollectorTestApp(setup?: {
     return Promise.resolve(files);
   });
 
+  const publicSourceRecords: Array<Record<string, unknown>> = [];
+  const publicSourceCollection = {
+    find: vi.fn((filter: { isPublicSource?: boolean }) => ({
+      toArray: async () =>
+        publicSourceRecords.filter((source) => source.isPublicSource === filter.isPublicSource),
+    })),
+    findOne: vi.fn(
+      async (filter: { fullName: string; isPublicSource?: boolean }) =>
+        publicSourceRecords.find(
+          (source) =>
+            source.fullName === filter.fullName &&
+            (!filter.isPublicSource || source.isPublicSource === filter.isPublicSource)
+        ) || null
+    ),
+    updateOne: vi.fn(
+      async (_filter: { fullName: string }, update: { $set: Record<string, unknown> }) => {
+        publicSourceRecords.push({ ...update.$set });
+        return { acknowledged: true };
+      }
+    ),
+  };
+
   app.decorate('vcsProvider', {
     listRepositories: listRepositoriesMock,
     getRepository: getRepositoryMock,
     listMarkdownFiles: listMarkdownFilesMock,
     getFile: vi.fn(),
   });
+  app.decorate('mongo', {
+    db: {
+      collection: vi.fn(() => publicSourceCollection),
+    },
+  } as unknown as FastifyInstance['mongo']);
 
   app.decorate('eventBus', {
     publish: vi.fn(
@@ -114,6 +141,7 @@ async function buildCollectorTestApp(setup?: {
     app,
     mocks: {
       listMarkdownFilesMock,
+      publicSourceRecords,
     },
   };
 }
@@ -163,6 +191,69 @@ describe('collector routes', () => {
       message: 'Internal Server Error',
       requestId: expect.any(String),
     });
+
+    await app.close();
+  });
+
+  it('POST /api/collector/repositories/public registers and scans a public repository', async () => {
+    const { app, mocks } = await buildCollectorTestApp();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/collector/repositories/public',
+      payload: { repository: 'https://github.com/acme/docs' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      provider: 'github',
+      repository: 'acme/docs',
+      maxFiles: 5,
+      scanned: 1,
+      published: 1,
+    });
+    expect(mocks.publicSourceRecords[0]).toMatchObject({
+      fullName: 'acme/docs',
+      isPublicSource: true,
+    });
+
+    await app.close();
+  });
+
+  it('POST /api/collector/repositories/public rejects private repositories', async () => {
+    const { app, mocks } = await buildCollectorTestApp({
+      repository: {
+        id: 'acme/docs',
+        name: 'docs',
+        url: 'https://github.com/acme/docs',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        defaultBranch: 'main',
+        isPrivate: true,
+      },
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/collector/repositories/public',
+      payload: { repository: 'acme/docs' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(mocks.publicSourceRecords).toHaveLength(0);
+
+    await app.close();
+  });
+
+  it('POST /api/collector/repositories/public rejects invalid repository input', async () => {
+    const { app } = await buildCollectorTestApp();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/collector/repositories/public',
+      payload: { repository: 'https://gitlab.com/acme/docs' },
+    });
+
+    expect(response.statusCode).toBe(400);
 
     await app.close();
   });

@@ -8,11 +8,14 @@ import type { DocAtlasEventMap } from '../../plugins/eventBus/types';
 import type { LocalEventBus } from '../../plugins/eventBus/eventBus';
 
 type CollectorServiceDependencies = Pick<FastifyInstance, 'vcsProvider' | 'eventBus' | 'log'> & {
+  mongo: FastifyInstance['mongo'];
   mocks: {
     listRepositories: ReturnType<typeof vi.fn>;
     getRepository: ReturnType<typeof vi.fn>;
     listMarkdownFiles: ReturnType<typeof vi.fn>;
     publish: ReturnType<typeof vi.fn>;
+    updatePublicSource: ReturnType<typeof vi.fn>;
+    publicSourceRecords: Array<Record<string, unknown>>;
   };
 };
 
@@ -93,7 +96,41 @@ function createFastifyMock(overrides?: {
     return Promise.resolve();
   });
 
+  const publicSourceRecords: Array<Record<string, unknown>> = [];
+  const updatePublicSource = vi.fn(
+    async (filter: { fullName: string }, update: { $set: Record<string, unknown> }) => {
+      const existing = publicSourceRecords.find((source) => source.fullName === filter.fullName);
+      if (existing) {
+        Object.assign(existing, update.$set);
+      } else {
+        publicSourceRecords.push({ ...update.$set });
+      }
+      return { acknowledged: true };
+    }
+  );
+  const sourceCollection = {
+    find: vi.fn((filter: { isPublicSource?: boolean }) => ({
+      toArray: async () =>
+        publicSourceRecords.filter((source) => source.isPublicSource === filter.isPublicSource),
+    })),
+    findOne: vi.fn(
+      async (filter: { fullName: string; isPublicSource?: boolean }) =>
+        publicSourceRecords.find(
+          (source) =>
+            source.fullName === filter.fullName &&
+            (!filter.isPublicSource || source.isPublicSource === filter.isPublicSource)
+        ) || null
+    ),
+    updateOne: updatePublicSource,
+  };
+  const mongo = {
+    db: {
+      collection: vi.fn(() => sourceCollection),
+    },
+  } as unknown as FastifyInstance['mongo'];
+
   return {
+    mongo,
     log: {
       info: vi.fn(),
     } as unknown as FastifyBaseLogger,
@@ -113,6 +150,8 @@ function createFastifyMock(overrides?: {
       getRepository,
       listMarkdownFiles,
       publish,
+      updatePublicSource,
+      publicSourceRecords,
     },
   } as CollectorServiceDependencies;
 }
@@ -356,5 +395,145 @@ describe('CollectorService.scanRepository', () => {
 
     await expect(service.scanRepository('acme', 'docs')).rejects.toThrow('event bus down');
     expect(dependencies.mocks.publish).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('CollectorService.addPublicRepository', () => {
+  const originalProviderType = process.env.PROVIDER_TYPE;
+  const originalPublicRepositoryLimit = process.env.COLLECTOR_PUBLIC_REPOSITORY_MAX_FILES;
+
+  beforeEach(() => {
+    process.env.PROVIDER_TYPE = 'github';
+  });
+
+  afterEach(() => {
+    process.env.PROVIDER_TYPE = originalProviderType;
+    process.env.COLLECTOR_PUBLIC_REPOSITORY_MAX_FILES = originalPublicRepositoryLimit;
+  });
+
+  it('registers a verified public repository and scans it', async () => {
+    const dependencies = createFastifyMock();
+    const service = new CollectorService(dependencies);
+
+    const result = await service.addPublicRepository('https://github.com/acme/docs');
+
+    expect(dependencies.mocks.updatePublicSource).toHaveBeenCalledWith(
+      { fullName: 'acme/docs' },
+      {
+        $set: expect.objectContaining({
+          fullName: 'acme/docs',
+          isPrivate: false,
+          isPublicSource: true,
+        }),
+      },
+      { upsert: true }
+    );
+    expect(dependencies.mocks.getRepository).toHaveBeenCalledWith('acme', 'docs');
+    expect(dependencies.mocks.listMarkdownFiles).toHaveBeenCalledWith('acme', 'docs', {
+      branch: 'main',
+      pathPattern: undefined,
+      maxFiles: 5,
+    });
+    expect(result).toEqual({ repository: 'acme/docs', maxFiles: 5, scanned: 1, published: 1 });
+    expect(dependencies.mocks.publicSourceRecords).toHaveLength(1);
+    const completionEvent = dependencies.mocks.publish.mock.calls.find(
+      (call) => call[0] === 'collector.repository.sync.completed'
+    )?.[1] as { fullScan: boolean };
+    expect(completionEvent.fullScan).toBe(false);
+  });
+
+  it.each([
+    ['3', 3],
+    ['500', 100],
+  ])('uses the configured public import limit %s with a maximum of 100', async (value, limit) => {
+    process.env.COLLECTOR_PUBLIC_REPOSITORY_MAX_FILES = value;
+    const dependencies = createFastifyMock();
+    const service = new CollectorService(dependencies);
+
+    const result = await service.addPublicRepository('acme/docs');
+
+    expect(result.maxFiles).toBe(limit);
+    expect(dependencies.mocks.listMarkdownFiles).toHaveBeenCalledWith('acme', 'docs', {
+      branch: 'main',
+      pathPattern: undefined,
+      maxFiles: limit,
+    });
+  });
+
+  it('rejects private repositories without registering them', async () => {
+    const dependencies = createFastifyMock({
+      repository: {
+        id: 'acme/docs',
+        name: 'docs',
+        url: 'https://github.com/acme/docs',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        defaultBranch: 'main',
+        isPrivate: true,
+      },
+    });
+    const service = new CollectorService(dependencies);
+
+    await expect(service.addPublicRepository('acme/docs')).rejects.toThrow(
+      'Only public repositories can be registered'
+    );
+    expect(dependencies.mocks.updatePublicSource).not.toHaveBeenCalled();
+  });
+
+  it('keeps the public registration if scanning fails', async () => {
+    const dependencies = createFastifyMock({
+      listMarkdownFilesError: new Error('scan unavailable'),
+    });
+    const service = new CollectorService(dependencies);
+
+    await expect(service.addPublicRepository('acme/docs')).rejects.toThrow('scan unavailable');
+    expect(dependencies.mocks.publicSourceRecords[0]).toMatchObject({
+      fullName: 'acme/docs',
+      isPublicSource: true,
+    });
+  });
+
+  it('removes shared visibility if a repository becomes private before scanning', async () => {
+    const dependencies = createFastifyMock();
+    vi.mocked(dependencies.vcsProvider.getRepository)
+      .mockResolvedValueOnce({
+        id: 'acme/docs',
+        name: 'docs',
+        url: 'https://github.com/acme/docs',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        defaultBranch: 'main',
+        isPrivate: false,
+      })
+      .mockResolvedValueOnce({
+        id: 'acme/docs',
+        name: 'docs',
+        url: 'https://github.com/acme/docs',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        defaultBranch: 'main',
+        isPrivate: true,
+      });
+    const service = new CollectorService(dependencies);
+
+    await expect(service.addPublicRepository('acme/docs')).rejects.toThrow(
+      'Registered repository is no longer public'
+    );
+    expect(dependencies.mocks.publicSourceRecords[0]).toMatchObject({
+      isPrivate: true,
+      isPublicSource: false,
+    });
+    expect(dependencies.mocks.listMarkdownFiles).not.toHaveBeenCalled();
+  });
+
+  it('includes persisted public sources in the repository list', async () => {
+    const dependencies = createFastifyMock();
+    const service = new CollectorService(dependencies);
+    await service.addPublicRepository('acme/docs');
+
+    const repositories = await service.listScannableRepositories();
+
+    expect(repositories).toHaveLength(1);
+    expect(repositories[0]).toMatchObject({
+      fullPath: 'acme/docs',
+      isPrivate: false,
+    });
   });
 });

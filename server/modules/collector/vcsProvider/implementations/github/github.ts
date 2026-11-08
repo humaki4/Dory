@@ -66,21 +66,47 @@ export class GitHubProvider implements IVcsProvider {
       recursive: '1',
     });
 
-    const mdFiles = treeResponse.data.tree
+    if (treeResponse.data.truncated) {
+      throw new Error(`GitHub returned a truncated file tree for ${owner}/${repo}`);
+    }
+
+    const markdownFiles = treeResponse.data.tree
       .filter((node) => node.path?.endsWith('.md') && node.type === 'blob')
       .filter((node): node is typeof node & { path: string } => typeof node.path === 'string');
+    const mdFiles =
+      options?.maxFiles === undefined
+        ? markdownFiles
+        : markdownFiles
+            .sort((left, right) => left.path.localeCompare(right.path))
+            .slice(0, Math.max(0, options.maxFiles));
 
-    const results = await Promise.allSettled(
-      mdFiles.map((mdFile) => this.getFile(owner, repo, mdFile.path, branch))
-    );
+    const results: PromiseSettledResult<FileContent>[] = new Array(mdFiles.length);
+    let nextFileIndex = 0;
+    const workerCount = Math.min(5, mdFiles.length);
+    const workers = Array.from({ length: workerCount }, async () => {
+      while (nextFileIndex < mdFiles.length) {
+        const index = nextFileIndex++;
+        try {
+          results[index] = {
+            status: 'fulfilled',
+            value: await this.getFile(owner, repo, mdFiles[index].path, branch),
+          };
+        } catch (reason) {
+          results[index] = { status: 'rejected', reason };
+        }
+      }
+    });
+    await Promise.all(workers);
 
     const rejectedResults = results.filter(
       (result): result is PromiseRejectedResult => result.status === 'rejected'
     );
 
     if (rejectedResults.length > 0) {
+      const firstError = rejectedResults[0].reason;
+      const errorMessage = firstError instanceof Error ? firstError.message : String(firstError);
       throw new Error(
-        `Failed to fetch ${rejectedResults.length} markdown file(s) from ${owner}/${repo}`
+        `Failed to fetch ${rejectedResults.length} markdown file(s) from ${owner}/${repo}. ${errorMessage}`
       );
     }
 

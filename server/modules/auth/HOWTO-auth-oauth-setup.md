@@ -6,7 +6,7 @@ Dieses Backend unterstützt jetzt OAuth-Login über `/api/auth/:provider/*` mit 
 
 - Default-Deny für API: alle `/api/*` Routen verlangen Authentifizierung.
 - Public-Ausnahmen: nur OAuth Start/Callback (`/api/auth/:provider/start`, `/api/auth/:provider/callback`) sowie optional `/api/health` und `/api/healthz`.
-- Content-Zugriff (`documents`, `search`) wird aktuell zusätzlich pro Repository gegen die GitHub-Berechtigungen des eingeloggten Nutzers geprüft.
+- Content-Zugriff (`documents`, `search`) wird pro Repository gegen die GitHub-Berechtigungen des eingeloggten Nutzers geprüft. Admin-registrierte öffentliche GitHub-Quellen sind für alle angemeldeten Nutzer sichtbar.
 
 ## Benötigte ENV-Variablen
 
